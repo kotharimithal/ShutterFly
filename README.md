@@ -30,7 +30,7 @@ drop database shutterfly;
 ##Checking the output
 To check the output you can login to mysql using same credentials and then run 
 use shutterFly; (execute this command in mysql)
-select * from <table name>; to see the data in that table.
+select * from table_name; to see the data in that table.
 
 ## Libraries used
 I have used mysql-connector lib to connect to mysql using JAVA jdbc. 
