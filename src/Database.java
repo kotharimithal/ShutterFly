@@ -1,3 +1,4 @@
+import java.io.File;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -14,6 +15,8 @@ public class Database {
 	static final String JDBC_DRIVER = "com.mysql.cj.jdbc.Driver";  
 	static final String DB_URL = "jdbc:mysql://localhost?useSSL=false";	
 	static final String DBName = "ShutterFly";
+	
+	public static final String TAB = "\t";
 	
 	Connection conn = null;
 	Statement stmt = null;
@@ -62,18 +65,40 @@ public class Database {
 										            " PRIMARY KEY (`key`)," +
 										            " FOREIGN KEY (customerId) REFERENCES CUSTOMER (`key`))"; 
 	
+	private static String LTV = "SELECT c.lastName, "
+										+ "sv.customerId, "
+										+ "o.total_amount_in_a_year,"
+										+ "sv.number_of_visits_in_a_year "
+										+ "FROM ( "
+										+ "select customerId, count(`key`) as number_of_visits_in_a_year "
+										+ "from site_visit "
+										+ "where eventTime between STARTDATE and ENDDATE "
+										+ "group by customerId "
+										+ ") sv LEFT JOIN ( "
+										+ "select customerId, "
+										+ "sum(totalAmount) as total_amount_in_a_year "
+										+ "from `order` "
+										+ "where eventTime between STARTDATE and ENDDATE "
+										+ "group by customerId "
+										+ ") o ON sv.customerId = o.customerId "
+										+ "JOIN customer c "
+										+ "on c.`key` = sv.customerId "
+										+ "order by o.total_amount_in_a_year desc "
+										+ "limit NUMBER"; 
+	
+	
+	
 	private static final List<String> listOfTables = 
 			new ArrayList<String>(Arrays.asList(CUSTOMER_TABLE,SITE_VISIT_TABLE,IMAGE_TABLE,ORDER_TABLE));
 	
-	public Database() 
-	{
+	public Database() {
 	   try{
 		   boolean dbCreated = false;
 		   conn = getConnection();	
 		   stmt = conn.createStatement();
 		   dbCreated = createDB(conn,DBName);
+		   stmt.executeUpdate("use "+ DBName+" ;");
 		   if (dbCreated){
-			   stmt.executeUpdate("use "+ DBName+" ;");
 			   createTables(conn);
 		   }
 		   }catch(Exception e){
@@ -81,8 +106,7 @@ public class Database {
 		   }
 	}
 
-	private void createTables(Connection connection) 
-	{
+	private void createTables(Connection connection) {
 		int tableIndex = 0;
 		try {
 			stmt = connection.createStatement();
@@ -94,8 +118,7 @@ public class Database {
 		}
 	}
 
-	private boolean createDB(Connection connection, String databaseName) 
-	{
+	private boolean createDB(Connection connection, String databaseName) {
 		ResultSet resultSet = null;
 		try {
 			resultSet = connection.getMetaData().getCatalogs();
@@ -124,8 +147,7 @@ public class Database {
 		return true;		
 	}
 
-	void closeConnection() 
-	{
+	void closeConnection() {
       try{
 	       if(stmt!=null)
 	    	   stmt.close();
@@ -135,8 +157,7 @@ public class Database {
 	       }
 	}
 
-	private Connection getConnection() 
-	{
+	private Connection getConnection() {
       try {
     	  Class.forName(JDBC_DRIVER).newInstance();
 	      System.out.println("Connecting to database...");
@@ -165,8 +186,7 @@ public class Database {
 		
 	}
 	
-	private void updateExistingEntry(Map<String, String> fields) 
-	{
+	private void updateExistingEntry(Map<String, String> fields) {
 		Set<String> fieldsKeySet = fields.keySet();
 		StringBuilder sqlUpdateStatement = new StringBuilder();
 		StringBuilder query = new StringBuilder();
@@ -192,8 +212,7 @@ public class Database {
 		}
 	}
 
-	private void createNewEntry(Map<String, String> fields) 
-	{
+	private void createNewEntry(Map<String, String> fields) {
 		Set<String> fieldsKeySet = fields.keySet();
 		StringBuilder sqlInsertStatement = new StringBuilder();
 		StringBuilder keys = new StringBuilder();
@@ -218,20 +237,45 @@ public class Database {
 		sqlInsertStatement.append("INSERT INTO "+getTableName(fields.get("type").toLowerCase())+" "+keys.toString()+" "+values.toString()+";");
 		System.out.println(sqlInsertStatement.toString());
 		try {
-			this.stmt = this.conn.createStatement();
+			this.stmt = this.conn.createStatement(); 
 			stmt.executeUpdate(sqlInsertStatement.toString());
 		} catch (SQLException e) {
-			System.out.println("Error occurred while inserting statement : "+sqlInsertStatement.toString());
 			// TODO Auto-generated catch block
-			// e.printStackTrace();
+			if (e.getErrorCode() != 1062){
+				System.out.println("Error occurred while inserting statement : "+sqlInsertStatement.toString());				
+			}
+			//e.printStackTrace();
 		}
 	}
 
-	private Object getTableName(String tableName) 
-	{
+	private Object getTableName(String tableName) {
 		if (tableName.equals("order"))
 			return "`order`";
 		return tableName;
+	}
+
+	public void calculateTLV(String startDate, String endDate, String maxNumberOfCustomers, File outputTlvFilePath) {
+		// TODO Auto-generated method stub
+		Helper helper = new Helper();
+		LTV = LTV.replace("STARTDATE", "'"+startDate+"'");
+		LTV = LTV.replace("ENDDATE", "'"+endDate+"'");
+		LTV = LTV.replace("NUMBER", maxNumberOfCustomers);
+		ResultSet resultSet = null;
+		try {
+			this.stmt = this.conn.createStatement(); 
+			resultSet = stmt.executeQuery(LTV);
+		    while(resultSet.next()){
+		    	String textToWrite = resultSet.getString("lastName") + TAB +
+ 					   					resultSet.getString("customerId") + TAB +
+ 					   					Double.valueOf(resultSet.getString("total_amount_in_a_year")) + TAB +
+ 					   					Integer.valueOf(resultSet.getString("number_of_visits_in_a_year"));
+		    	helper.writeToFile(outputTlvFilePath, textToWrite);
+		    	System.out.println(textToWrite);
+		    }	 
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			System.out.println("Error processing sql query for TLV");
+		}
 	}
 
 }

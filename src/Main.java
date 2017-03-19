@@ -8,19 +8,26 @@ import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import org.json.*;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 
 public class Main {
-	public static final Set<String> REQUIREDSET = new HashSet<String> (Arrays.asList("type","verb","key","event_time"));
-	public static final File INPUTFILEPATH = new File(new File(".").getAbsolutePath(), "input/events.txt");
-	public static final File REJECTFILEPATH = new File(new File(".").getAbsolutePath(), "output/rejects.txt");
-	public static final String NEWLINE = "\n";
+	public static final Set<String> REQUIRED_SET = new HashSet<String> (Arrays.asList("type","verb","key","event_time"));
+	public static final File INPUT_FILE_PATH = new File(new File(".").getAbsolutePath(), "input/events.txt");
+	public static final File OUTPUT_TLV_FILE_PATH = new File(new File(".").getAbsolutePath(), "output/output.txt");
+	public static final File REJECT_FILE_PATH = new File(new File(".").getAbsolutePath(), "output/rejects.txt");
+	
+	private static Helper helper = new Helper();
 	
 	public static void main(String[] args) 
 	{
@@ -28,13 +35,14 @@ public class Main {
 	}
 	
 	private static <T> void processData() 
-	{
-		String inputFileData = readInputFile();
+	{	
+		String inputFileData = helper.readInputFile(INPUT_FILE_PATH);
 		ingestData(inputFileData);
+		TLV tlv = new TLV();
+		tlv.TopXSimpleLTVCustomers(10,OUTPUT_TLV_FILE_PATH);
 	}
-
-	private static <T> void ingestData(String eventsData) 
-	{
+	
+	private static <T> void ingestData(String eventsData){
 		Database db = null;
 		try {
 			db = new Database();
@@ -43,7 +51,7 @@ public class Main {
 				db.processEvent(event);
 			}
 		} catch (Exception e) {
-			writeToFile(REJECTFILEPATH, eventsData);
+			helper.writeToFile(REJECT_FILE_PATH, eventsData);
 		} finally {
 			db.closeConnection();
 		}
@@ -55,15 +63,21 @@ public class Main {
 		List<T> eventObjects = new ArrayList<T>();
 		for(int index=0; index<jsonArray.length(); index++){
 	        JSONObject obj = jsonArray.getJSONObject(index);
-	        if (obj.keySet().containsAll(REQUIREDSET)){	 	
+	        if (obj.keySet().containsAll(REQUIRED_SET)){	 	
 				object = getInstanceOfClass(obj);
-				if (object != null)
+				if (object != null){
 					eventObjects.add((T)object);
+				} else {
+					helper.writeToFile(REJECT_FILE_PATH, obj.toString());
+					System.out.println("Information is in wrong format for : "+obj.toString());
+				}
+					
 	        } else {
-	        	writeToFile(REJECTFILEPATH, obj.toString());
+	        	helper.writeToFile(REJECT_FILE_PATH, obj.toString());
 	        	System.out.println("Missing information for : "+obj.toString());
 	        }
 	    }
+		System.out.println(eventObjects.size());
 		return eventObjects;
 	}
 
@@ -90,11 +104,12 @@ public class Main {
         Constructor<?> constructor = getConstructor(c);
         Object object = getInstance(constructor);
         Method method = getMethod(object);
+
         boolean returnValue = false;
         
         // If error getting class, constructor, instance or finding method then reject that entry and write it to rejects file.
         if (c == null || constructor == null || object == null || method == null){
-        	writeToFile(REJECTFILEPATH, obj.toString());
+        	helper.writeToFile(REJECT_FILE_PATH, obj.toString());
         }
         
         try {
@@ -163,68 +178,6 @@ public class Main {
 		return classObject;
 	}
 
-	private static void writeToFile(File file, String textToWrite) 
-	{
-		// TODO Auto-generated method stub
-		BufferedWriter bw = null;
-		FileWriter fw = null;
-		try {
-			// if file doesnt exists, then create it
-			if (!file.exists()) {
-				file.createNewFile();
-			}
-			// true = append file
-			fw = new FileWriter(file.getAbsoluteFile(), true);
-			bw = new BufferedWriter(fw);
-			bw.write(textToWrite+NEWLINE);
-		} catch (IOException e) {
-			System.out.println("Error Occurred : IOException while writing to "+ file.getName() +" file");
-//			e.printStackTrace();
-		} finally {
-			try {
-				if (bw != null)
-					bw.close();
-				if (fw != null)
-					fw.close();
-			} catch (IOException ex) {
-				System.out.println("Error Occurred : IOException while closing file in writeToFile");
-//				ex.printStackTrace();
-			}
-		}
-	}
 
-	private static String readInputFile()
-	{
-		BufferedReader br = null;
-		FileReader fr = null;
-		StringBuilder inputFileDataBuilder = new StringBuilder();
-		try {
-			fr = new FileReader(INPUTFILEPATH);
-		    br = new BufferedReader(fr);
-		    try {
-		        String inputFileLine;
-		        while ( (inputFileLine = br.readLine()) != null ) {
-		            inputFileDataBuilder.append(inputFileLine);
-		        }
-		    } catch (IOException e) {
-		    	System.out.println("Error occurred : IOException while reading file");
-		        //e.printStackTrace();
-		    }
-		} catch (FileNotFoundException e) {
-		    System.out.println("Error : Input File Not Found");
-		    System.out.println("Input File Path is : "+INPUTFILEPATH);
-		    //e.printStackTrace();
-		} finally {
-			try {
-				if (br != null)
-					br.close();
-				if (fr != null)
-					fr.close();
-			} catch (IOException ex) {
-				System.out.println("Error occurred : IOException while closing file in readInputFile");
-			}
-		}
-		return inputFileDataBuilder.toString();
-	}
 
 }

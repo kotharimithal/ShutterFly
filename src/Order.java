@@ -7,7 +7,7 @@ import java.util.Set;
 import org.json.JSONObject;
 
 public class Order {
-	private final static Set<String> ORDERNONEMPTYFIELDS = new HashSet<String> (Arrays.asList("type","verb","key","eventTime","customerId","totalAmount"));
+	private final static Set<String> ORDER_NON_EMPTY_FIELDS = new HashSet<String> (Arrays.asList("type","verb","key","eventTime","customerId","totalAmount"));
 	public Map<String, String> fields = new HashMap<String, String>();
 
 	public Order() {
@@ -23,18 +23,18 @@ public class Order {
 		this.fields.put("customerId", ValidateAndTransform.getJsonValue(jsonObject, "customer_id"));
 		this.fields.put("totalAmount", ValidateAndTransform.getJsonValue(jsonObject, "total_amount"));
 
-		for (String key : ORDERNONEMPTYFIELDS){
+		for (String key : ORDER_NON_EMPTY_FIELDS){
 			if (ValidateAndTransform.isEmpty(this.fields.getOrDefault(key, null))){
 //				System.out.println("Field "+key+" is empty for Order");
 //				System.out.println(jsonObject.toString());
 				return false;
 			}
 		}
-
+		
 		if (!ValidateAndTransform.isDouble(this.fields.getOrDefault("totalAmount", null))){
 			return false;
 		}
-		
+
 		if (!ValidateAndTransform.checkVerbValues(this.fields.getOrDefault("verb", null))){
 			return false;
 		}

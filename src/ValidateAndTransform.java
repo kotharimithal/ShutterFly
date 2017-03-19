@@ -19,20 +19,20 @@ public class ValidateAndTransform {
 	}
 
 	public static boolean isDateTimeValid(String dateTime) {
-		
 		if(dateTime == null)
 			return false;
 		
 		String DATE_FORMAT = "yyyy-MM-dd";
 		String TIME_FORMAT = "HH:mm:ss";
-		
 		DateFormat df = null;
-		
-		String[] dateAndTime = dateTime.split("T");	
-				
-		// System.out.println("Date is "+dateAndTime[0]+" & Time is "+dateAndTime[1]);
-			
 	        try {
+	        	dateTime = dateTime.replace("T", " ");
+	        	String[] dateAndTime = dateTime.split(" ");	
+	        	if (dateAndTime.length != 2){
+//	        		System.out.println(dateAndTime.toString());
+	        		System.out.println("Error processing dateTime "+dateTime);
+	        		return false;
+	        	}
 	            df = new SimpleDateFormat(DATE_FORMAT);
 	            df.setLenient(false);
 	            df.parse(dateAndTime[0]);
@@ -42,7 +42,10 @@ public class ValidateAndTransform {
 	            df.parse(dateAndTime[1]);
 	            return true;
 	        } catch (ParseException e) {
-	            return false;
+	        	
+	        	System.out.println("Error processing dateTime "+dateTime);
+	        	System.out.println(e.getMessage());
+	        	return false;
 	        }
 	}
 	
@@ -69,7 +72,8 @@ public class ValidateAndTransform {
 
 	public static boolean isDouble(String stringToCheck) {
 		try {
-			Double.valueOf(stringToCheck);
+			String totalAmount = stringToCheck.replaceAll("[^0-9.]", "").trim();
+			Double.valueOf(totalAmount);
 		} catch (Exception e) {
 			// TODO: handle exception
 			return false;

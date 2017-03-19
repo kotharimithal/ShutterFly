@@ -29,8 +29,8 @@ public class SiteVisit {
 
 		for (String key : SITEVISITNONEMPTYFIELDS){
 			if (ValidateAndTransform.isEmpty(this.fields.getOrDefault(key, null))){
-//				System.out.println("Field "+key+" is empty for siteVisit");
-//				System.out.println(jsonObject.toString());
+				System.out.println("Field "+key+" is empty for siteVisit");
+				System.out.println(jsonObject.toString());
 				return false;
 			}
 		}
@@ -43,6 +43,7 @@ public class SiteVisit {
 		if (ValidateAndTransform.isDateTimeValid(eventTime)){
 			this.fields.put("eventTime", ValidateAndTransform.transformEventTime(eventTime));
 		} else {
+			System.out.println("Error processing event_time for siteVisit");
 			return false;
 		}
 		

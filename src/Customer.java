@@ -25,18 +25,21 @@ public class Customer {
 		
 		for (String key : CUSTOMERNONEMPTYFIELDS){
 			if (ValidateAndTransform.isEmpty(this.fields.getOrDefault(key, null))){
+				System.out.println(key +" is empty for customer object");
 				return false;
 			}
 		}
 		
 		if (!ValidateAndTransform.checkVerbValues(this.fields.getOrDefault("verb", null))){
+			System.out.println("Verb is empty for customer object");
 			return false;
 		}
 		
 		String eventTime = this.fields.getOrDefault("eventTime", null);
 		if (ValidateAndTransform.isDateTimeValid(eventTime)){
 			this.fields.put("eventTime", ValidateAndTransform.transformEventTime(eventTime));
-		} else {			
+		} else {
+			System.out.println("Error parsing event_time for customer");
 			return false;
 		}
 
