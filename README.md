@@ -40,6 +40,9 @@ I have also used json.jar file to read and parse the events (json) correctly.
 I have assumed data will be passed in JSONArray format even for a single event.
 If event has missing value then it will be written to rejects.txt file in output directory.
 
+##LTV
+I have calculated LTV using dates from one year to date of execution and plugging those dates in the query. For calculating LTV for each week I have implmemented a method which can give us the start and end date of each week in a past year in the HashMap.
+
 ## PERFORMANCE and FUTURE CHANGES:
 Fields like tags can be made as a child table of SiteVisit.java.
 More checks can be added to database related operations and further code can be refactored. 
@@ -48,3 +51,4 @@ Also we could new tables in database and scheduler to run this as batch process 
 	and also to improve performance we can try to make the code/system more like distributed system.
 Also we can check for different database connectors with better performance.
 Also for missing data instead of writing into rejects.txt file we can write to DB so it would be easier to perform extra analysis.
+  
